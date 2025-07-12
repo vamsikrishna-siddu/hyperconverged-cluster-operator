@@ -57,6 +57,27 @@ func verifyVMICreation(ctx context.Context, cli client.Client) string {
 	}
 	vmi.Spec.Networks = []kubevirtcorev1.Network{*kubevirtcorev1.DefaultPodNetwork()}
 
+	vmi.Spec.Domain.Devices.Disks = []kubevirtcorev1.Disk{
+		{
+			Name: "disk0",
+			DiskDevice: kubevirtcorev1.DiskDevice{
+				Disk: &kubevirtcorev1.DiskTarget{
+					Bus: kubevirtcorev1.DiskBusVirtio,
+				},
+			},
+		},
+	}
+	vmi.Spec.Volumes = []kubevirtcorev1.Volume{
+		{
+			Name: "disk0",
+			VolumeSource: kubevirtcorev1.VolumeSource{
+				ContainerDisk: &kubevirtcorev1.ContainerDiskSource{
+					Image: "quay.io/kubevirt/alpine-container-disk-demo:v1.5.0",
+				},
+			},
+		},
+	}
+
 	EventuallyWithOffset(1, func() error {
 		return cli.Create(ctx, vmi)
 	}).WithTimeout(timeout).WithPolling(pollingInterval).Should(Succeed(), "failed to create a vmi")
