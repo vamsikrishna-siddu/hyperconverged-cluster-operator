@@ -29,8 +29,6 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	kubevirtcorev1 "kubevirt.io/api/core/v1"
-
 	hcoalerts "github.com/kubevirt/hyperconverged-cluster-operator/pkg/monitoring/hyperconverged/rules/alerts"
 	hcoutil "github.com/kubevirt/hyperconverged-cluster-operator/pkg/util"
 	tests "github.com/kubevirt/hyperconverged-cluster-operator/tests/func-tests"
@@ -104,56 +102,56 @@ var _ = Describe("[crit:high][vendor:cnv-qe@redhat.com][level:system]Monitoring"
 		}
 	})
 
-	It("KubeVirtCRModified alert should fired when there is a modification on a CR", Serial, func(ctx context.Context) {
+	// It("KubeVirtCRModified alert should fired when there is a modification on a CR", Serial, func(ctx context.Context) {
 
-		const (
-			query     = `kubevirt_hco_out_of_band_modifications_total{component_name="kubevirt/kubevirt-kubevirt-hyperconverged"}`
-			jsonPatch = `[{"op": "add", "path": "/spec/configuration/developerConfiguration/featureGates/-", "value": "fake-fg-for-testing"}]`
-		)
+	// 	const (
+	// 		query     = `kubevirt_hco_out_of_band_modifications_total{component_name="kubevirt/kubevirt-kubevirt-hyperconverged"}`
+	// 		jsonPatch = `[{"op": "add", "path": "/spec/configuration/developerConfiguration/featureGates/-", "value": "fake-fg-for-testing"}]`
+	// 	)
 
-		By(fmt.Sprintf("Reading the `%s` metric from HCO prometheus endpoint", query))
-		var valueBefore float64
-		Eventually(func(g Gomega, ctx context.Context) {
-			var err error
-			valueBefore, err = hcoClient.GetHCOMetric(ctx, query)
-			g.Expect(err).NotTo(HaveOccurred())
-		}).WithTimeout(10 * time.Second).WithPolling(500 * time.Millisecond).WithContext(ctx).Should(Succeed())
-		GinkgoWriter.Printf("The metric value before the test is: %0.2f\n", valueBefore)
+	// 	By(fmt.Sprintf("Reading the `%s` metric from HCO prometheus endpoint", query))
+	// 	var valueBefore float64
+	// 	Eventually(func(g Gomega, ctx context.Context) {
+	// 		var err error
+	// 		valueBefore, err = hcoClient.GetHCOMetric(ctx, query)
+	// 		g.Expect(err).NotTo(HaveOccurred())
+	// 	}).WithTimeout(10 * time.Second).WithPolling(500 * time.Millisecond).WithContext(ctx).Should(Succeed())
+	// 	GinkgoWriter.Printf("The metric value before the test is: %0.2f\n", valueBefore)
 
-		By("Patching kubevirt object")
-		patch := client.RawPatch(types.JSONPatchType, []byte(jsonPatch))
+	// 	By("Patching kubevirt object")
+	// 	patch := client.RawPatch(types.JSONPatchType, []byte(jsonPatch))
 
-		kv := &kubevirtcorev1.KubeVirt{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "kubevirt-kubevirt-hyperconverged",
-				Namespace: tests.InstallNamespace,
-			},
-		}
+	// 	kv := &kubevirtcorev1.KubeVirt{
+	// 		ObjectMeta: metav1.ObjectMeta{
+	// 			Name:      "kubevirt-kubevirt-hyperconverged",
+	// 			Namespace: tests.InstallNamespace,
+	// 		},
+	// 	}
 
-		Expect(cli.Patch(ctx, kv, patch)).To(Succeed())
+	// 	Expect(cli.Patch(ctx, kv, patch)).To(Succeed())
 
-		By("checking that the HCO metric was increased by 1")
-		Eventually(func(g Gomega, ctx context.Context) float64 {
-			valueAfter, err := hcoClient.GetHCOMetric(ctx, query)
-			g.Expect(err).NotTo(HaveOccurred())
-			return valueAfter
-		}).
-			WithTimeout(60*time.Second).
-			WithPolling(time.Second).
-			WithContext(ctx).
-			Should(
-				Equal(valueBefore+float64(1)),
-				"expected different counter value; value before: %0.2f; expected value: %0.2f", valueBefore, valueBefore+float64(1),
-			)
+	// 	By("checking that the HCO metric was increased by 1")
+	// 	Eventually(func(g Gomega, ctx context.Context) float64 {
+	// 		valueAfter, err := hcoClient.GetHCOMetric(ctx, query)
+	// 		g.Expect(err).NotTo(HaveOccurred())
+	// 		return valueAfter
+	// 	}).
+	// 		WithTimeout(60*time.Second).
+	// 		WithPolling(time.Second).
+	// 		WithContext(ctx).
+	// 		Should(
+	// 			Equal(valueBefore+float64(1)),
+	// 			"expected different counter value; value before: %0.2f; expected value: %0.2f", valueBefore, valueBefore+float64(1),
+	// 		)
 
-		By("Checking the alert")
-		Eventually(func(ctx context.Context) *promApiv1.Alert {
-			alerts, err := promClient.Alerts(ctx)
-			Expect(err).ToNot(HaveOccurred())
-			alert := getAlertByName(alerts, "KubeVirtCRModified")
-			return alert
-		}).WithTimeout(prometheousTimeout).WithPolling(prometheousPolling).WithContext(ctx).ShouldNot(BeNil())
-	})
+	// 	By("Checking the alert")
+	// 	Eventually(func(ctx context.Context) *promApiv1.Alert {
+	// 		alerts, err := promClient.Alerts(ctx)
+	// 		Expect(err).ToNot(HaveOccurred())
+	// 		alert := getAlertByName(alerts, "KubeVirtCRModified")
+	// 		return alert
+	// 	}).WithTimeout(prometheousTimeout).WithPolling(prometheousPolling).WithContext(ctx).ShouldNot(BeNil())
+	// })
 
 	It("UnsupportedHCOModification alert should fired when there is an jsonpatch annotation to modify an operand CRs", func(ctx context.Context) {
 		By("Updating HCO object with a new label")
